@@ -1,4 +1,4 @@
-import os, re, json, scrapetube, yt_dlp, requests, math, random, hashlib, time, platform
+import os, re, json, scrapetube, yt_dlp, requests, math, random, hashlib, time, platform, codecs
 from tinydb import TinyDB, Query
 from datetime import datetime
 import datetime as dt # FUNNY THAT I NEED THAT TO ACCESS STATIC FUNCTIONS...
@@ -240,13 +240,15 @@ def get_HtB_machines_response():
     if len(response) < 300e3 and verbose == True:
         my_p('get_HtB_machines_response()', '[WARN] response might be wrong as it\'s less than 300k, ignoring...')
     # TODO: check for the number of machines
+    # TODO: retries strategy
     # my_p('get_HtB_machines_response()', f'[INFO] Number of machines: {response.find("<title>") + 7 : response.find("</title>")}')
     return response
 
 def cache_HtB_machines_raw():
     try:
         content = get_HtB_machines_response()
-        with open(htbMachinesRawCacheLocation, 'w') as myfile:
+        print(content)
+        with codecs.open(htbMachinesRawCacheLocation, 'w', 'utf-8') as myfile:
             myfile.write(content)
     except Exception as err:
         if verbose == True: my_p('cache_HtB_machines_raw()', f'[WARN] unable to write to cache file: {htbMachinesRawCacheLocation}')
@@ -311,11 +313,12 @@ def load_HtB_database():
             if verbose == True: my_p('load_HtB_database()', f'[WARN] failed to match a machine, skipping...')
             continue
 
+        # TODO: skip missing parts instead of fail as a whole
         try:
             name = matchin[1].lower()
             flags = re.IGNORECASE
             difficulty = re.search(f'({_difficulty["s"]})<\\/', matchin[0], flags=flags)
-            avatar = re.search(r'(https://[a-z\.\/]+avatars/[a-z0-9]+\.[a-z0-9]+)', matchin[0], flags=flags)
+            avatar = re.search(r'(https://[a-z0-9\.\-\/]+avatars/[a-z0-9]+\.[a-z0-9]+)', matchin[0], flags=flags)
             platform = re.search(f'({_platform["s"]})', matchin[0], flags=flags)
             blob = {
                 '_type': 'machine',
